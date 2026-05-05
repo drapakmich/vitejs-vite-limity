@@ -75,13 +75,13 @@ function OverviewCard({
 function LimitInputRow({
   title,
   value,
-  totalLimit,
+  remainingValue,
   active,
   onActivate,
 }: {
   title: string;
   value: string;
-  totalLimit: number;
+  remainingValue: number;
   active: boolean;
   onActivate: () => void;
 }) {
@@ -98,16 +98,13 @@ function LimitInputRow({
       }`}
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0 pr-2 text-[16px] leading-[1.2] font-medium tracking-[-0.02em] text-neutral-900">
+        <div className="flex-1 min-w-0 pr-2 text-[16px] leading-[1.2] font-medium tracking-[-0.02em] text-neutral-900 whitespace-nowrap">
           {title}
         </div>
 
-        <div className="min-w-[190px] text-right">
+        <div className="w-[170px] shrink-0 text-right">
           <div className="flex items-end justify-end gap-1 whitespace-nowrap">
-            <span className="text-[20px] leading-none font-semibold tracking-[-0.03em] text-neutral-950">
-              zbývá
-            </span>
-            <span className="inline-flex w-[88px] justify-end text-right text-[20px] leading-none font-semibold tracking-[-0.03em] text-neutral-950">
+            <span className="inline-flex justify-end text-right text-[20px] leading-none font-semibold tracking-[-0.03em] text-neutral-950">
               {value}
               {active && (
                 <span className="ml-[1px] inline-block h-[20px] w-[1.5px] translate-y-[2px] animate-pulse bg-neutral-950" />
@@ -118,7 +115,7 @@ function LimitInputRow({
             </span>
           </div>
           <div className="mt-2 text-[14px] leading-none text-neutral-500 whitespace-nowrap">
-            z celkového limitu {formatKc(totalLimit)}
+            k čerpání {formatKc(remainingValue)}
           </div>
         </div>
       </div>
@@ -174,10 +171,10 @@ export default function LimitsTextInputPrototype() {
   const [screen, setScreen] = useState<Screen>("overview");
   const [activeField, setActiveField] = useState<LimitKey>("merchant");
   const [values, setValues] = useState(initialValues);
-  const [remainingDrafts, setRemainingDrafts] = useState<Record<LimitKey, string>>({
-    merchant: String(initialValues.merchant - CONFIG.merchant.spent),
-    internet: String(initialValues.internet - CONFIG.internet.spent),
-    atm: String(initialValues.atm - CONFIG.atm.spent),
+  const [limitDrafts, setLimitDrafts] = useState<Record<LimitKey, string>>({
+    merchant: String(initialValues.merchant),
+    internet: String(initialValues.internet),
+    atm: String(initialValues.atm),
   });
   const [internetInfo, setInternetInfo] = useState<null | "up" | "down">(null);
   const [replaceOnNextDigit, setReplaceOnNextDigit] = useState(false);
@@ -188,9 +185,8 @@ export default function LimitsTextInputPrototype() {
     atm: Math.max(values.atm - CONFIG.atm.spent, 0),
   };
 
-  const applyMerchantRemaining = (nextRemaining: number) => {
-    const safeRemaining = Math.max(nextRemaining, 0);
-    const nextMerchantTotal = safeRemaining + CONFIG.merchant.spent;
+  const applyMerchantLimit = (nextLimit: number) => {
+    const nextMerchantTotal = Math.max(nextLimit, 0);
 
     let nextInternetTotal = values.internet;
     let info: null | "up" | "down" = null;
@@ -201,17 +197,16 @@ export default function LimitsTextInputPrototype() {
     }
 
     setValues((prev) => ({ ...prev, merchant: nextMerchantTotal, internet: nextInternetTotal }));
-    setRemainingDrafts((prev) => ({
+    setLimitDrafts((prev) => ({
       ...prev,
-      merchant: String(nextMerchantTotal - CONFIG.merchant.spent),
-      internet: String(nextInternetTotal - CONFIG.internet.spent),
+      merchant: String(nextMerchantTotal),
+      internet: String(nextInternetTotal),
     }));
     setInternetInfo(info);
   };
 
-  const applyInternetRemaining = (nextRemaining: number) => {
-    const safeRemaining = Math.max(nextRemaining, 0);
-    const nextInternetTotal = safeRemaining + CONFIG.internet.spent;
+  const applyInternetLimit = (nextLimit: number) => {
+    const nextInternetTotal = Math.max(nextLimit, 0);
 
     let nextMerchantTotal = values.merchant;
     let info: null | "up" | "down" = null;
@@ -222,40 +217,39 @@ export default function LimitsTextInputPrototype() {
     }
 
     setValues((prev) => ({ ...prev, internet: nextInternetTotal, merchant: nextMerchantTotal }));
-    setRemainingDrafts((prev) => ({
+    setLimitDrafts((prev) => ({
       ...prev,
-      internet: String(nextInternetTotal - CONFIG.internet.spent),
-      merchant: String(nextMerchantTotal - CONFIG.merchant.spent),
+      internet: String(nextInternetTotal),
+      merchant: String(nextMerchantTotal),
     }));
     setInternetInfo(info);
   };
 
-  const applyAtmRemaining = (nextRemaining: number) => {
-    const safeRemaining = Math.max(nextRemaining, 0);
-    const nextAtmTotal = safeRemaining + CONFIG.atm.spent;
+  const applyAtmLimit = (nextLimit: number) => {
+    const nextAtmTotal = Math.max(nextLimit, 0);
 
     setValues((prev) => ({ ...prev, atm: nextAtmTotal }));
-    setRemainingDrafts((prev) => ({
+    setLimitDrafts((prev) => ({
       ...prev,
-      atm: String(nextAtmTotal - CONFIG.atm.spent),
+      atm: String(nextAtmTotal),
     }));
   };
 
   const commitField = (key: LimitKey, raw: string) => {
     const parsed = parseNumber(raw);
 
-    if (key === "merchant") applyMerchantRemaining(parsed);
-    if (key === "internet") applyInternetRemaining(parsed);
-    if (key === "atm") applyAtmRemaining(parsed);
+    if (key === "merchant") applyMerchantLimit(parsed);
+    if (key === "internet") applyInternetLimit(parsed);
+    if (key === "atm") applyAtmLimit(parsed);
   };
 
   const setValueForField = (key: LimitKey, next: string) => {
-    setRemainingDrafts((prev) => ({ ...prev, [key]: next }));
+    setLimitDrafts((prev) => ({ ...prev, [key]: next }));
     commitField(key, next);
   };
 
   const handleDigit = (digit: string) => {
-    const current = remainingDrafts[activeField];
+    const current = limitDrafts[activeField];
     const next = replaceOnNextDigit || current === "0" ? digit : `${current}${digit}`;
 
     setReplaceOnNextDigit(false);
@@ -263,7 +257,7 @@ export default function LimitsTextInputPrototype() {
   };
 
   const handleBackspace = () => {
-    const current = remainingDrafts[activeField];
+    const current = limitDrafts[activeField];
     const next = replaceOnNextDigit || current.length <= 1 ? "0" : current.slice(0, -1);
 
     setReplaceOnNextDigit(false);
@@ -356,8 +350,8 @@ export default function LimitsTextInputPrototype() {
             <div className="mt-4 space-y-4">
               <LimitInputRow
                 title={CONFIG.merchant.title}
-                value={remainingDrafts.merchant}
-                totalLimit={values.merchant}
+                value={limitDrafts.merchant}
+                remainingValue={remaining.merchant}
                 active={activeField === "merchant"}
                 onActivate={() => activateEditField("merchant")}
               />
@@ -370,8 +364,8 @@ export default function LimitsTextInputPrototype() {
 
               <LimitInputRow
                 title={CONFIG.internet.title}
-                value={remainingDrafts.internet}
-                totalLimit={values.internet}
+                value={limitDrafts.internet}
+                remainingValue={remaining.internet}
                 active={activeField === "internet"}
                 onActivate={() => activateEditField("internet")}
               />
@@ -384,8 +378,8 @@ export default function LimitsTextInputPrototype() {
 
               <LimitInputRow
                 title={CONFIG.atm.title}
-                value={remainingDrafts.atm}
-                totalLimit={values.atm}
+                value={limitDrafts.atm}
+                remainingValue={remaining.atm}
                 active={activeField === "atm"}
                 onActivate={() => activateEditField("atm")}
               />
