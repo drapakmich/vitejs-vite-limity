@@ -47,7 +47,7 @@ const CONFIG: Record<LimitKey, LimitConfig> = {
     overviewTitle: "u obchodníků",
     editTitle: "Denní limity pro platby u obchodníků",
     icon: "bank",
-    spent: 0,
+    spent: 10162.69,
   },
   internet: {
     title: "Platby na internetu",
@@ -296,10 +296,10 @@ export default function LimitsSingleEditPrototype() {
     setScreen("edit");
   };
 
-  const applyTotal = (key: LimitKey, nextTotalRaw: number, sourceInput: ActiveInput) => {
+  const applyTotal = (key: LimitKey, nextTotalRaw: number) => {
     const minTotal = CONFIG[key].spent;
-    let nextTotal = Math.max(nextTotalRaw, minTotal);
-    let nextValues = { ...values, [key]: nextTotal };
+    const nextTotal = Math.max(nextTotalRaw, minTotal);
+    const nextValues = { ...values, [key]: nextTotal };
     let nextInfo: InfoState = null;
 
     if (key === "internet" && nextTotal > nextValues.merchant) {
@@ -318,10 +318,10 @@ export default function LimitsSingleEditPrototype() {
     const visibleTotal = nextValues[key];
     const visibleAvailable = Math.max(visibleTotal - CONFIG[key].spent, 0);
 
-    setDrafts((prev) => ({
-      available: sourceInput === "available" ? toDraft(visibleAvailable) : toDraft(visibleAvailable),
-      total: sourceInput === "total" ? toDraft(visibleTotal) : toDraft(visibleTotal),
-    }));
+    setDrafts({
+      available: toDraft(visibleAvailable),
+      total: toDraft(visibleTotal),
+    });
   };
 
   const updateActiveInput = (nextDraft: string) => {
@@ -329,14 +329,11 @@ export default function LimitsSingleEditPrototype() {
     const spent = CONFIG[selectedLimit].spent;
 
     if (activeInput === "available") {
-      const nextTotal = parsed + spent;
-      applyTotal(selectedLimit, nextTotal, "available");
-      setDrafts((prev) => ({ ...prev, available: nextDraft }));
+      applyTotal(selectedLimit, parsed + spent);
       return;
     }
 
-    applyTotal(selectedLimit, parsed, "total");
-    setDrafts((prev) => ({ ...prev, total: nextDraft }));
+    applyTotal(selectedLimit, parsed);
   };
 
   const handleDigit = (digit: string) => {
