@@ -24,8 +24,13 @@ function toDraft(value: number) {
   return formatNumber(Math.max(value, 0));
 }
 
-function onlyDigits(value: string) {
-  return value.replace(/\D/g, "");
+function integerDigits(value: string) {
+  return value.split(",")[0].replace(/\D/g, "");
+}
+
+function formatIntegerDraft(value: string) {
+  const digits = integerDigits(value);
+  return digits ? formatNumber(Number(digits)) : "0";
 }
 
 type LimitKey = "merchant" | "internet" | "atm";
@@ -315,29 +320,37 @@ export default function LimitsSingleEditPrototype() {
     setValues(nextValues);
     setInfo(nextInfo);
 
-    const visibleTotal = nextValues[key];
-    const visibleAvailable = Math.max(visibleTotal - CONFIG[key].spent, 0);
-
-    setDrafts({
-      available: toDraft(visibleAvailable),
-      total: toDraft(visibleTotal),
-    });
+    return nextValues;
   };
 
   const updateActiveInput = (nextDraft: string) => {
-    const parsed = parseNumber(nextDraft);
+    const formattedDraft = formatIntegerDraft(nextDraft);
+    const parsed = parseNumber(formattedDraft);
     const spent = CONFIG[selectedLimit].spent;
 
     if (activeInput === "available") {
-      applyTotal(selectedLimit, parsed + spent);
+      const nextValues = applyTotal(selectedLimit, parsed + spent);
+      const visibleTotal = nextValues[selectedLimit];
+
+      setDrafts({
+        available: formattedDraft,
+        total: toDraft(visibleTotal),
+      });
       return;
     }
 
-    applyTotal(selectedLimit, parsed);
+    const nextValues = applyTotal(selectedLimit, parsed);
+    const visibleTotal = nextValues[selectedLimit];
+    const visibleAvailable = Math.max(visibleTotal - spent, 0);
+
+    setDrafts({
+      available: toDraft(visibleAvailable),
+      total: formattedDraft,
+    });
   };
 
   const handleDigit = (digit: string) => {
-    const current = onlyDigits(drafts[activeInput]);
+    const current = integerDigits(drafts[activeInput]);
     const nextRaw = replaceOnNextDigit || current === "0" ? digit : `${current}${digit}`;
     const next = formatNumber(Number(nextRaw));
 
@@ -346,7 +359,7 @@ export default function LimitsSingleEditPrototype() {
   };
 
   const handleBackspace = () => {
-    const current = onlyDigits(drafts[activeInput]);
+    const current = integerDigits(drafts[activeInput]);
     const nextRaw = replaceOnNextDigit || current.length <= 1 ? "0" : current.slice(0, -1);
     const next = formatNumber(Number(nextRaw));
 
