@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 const fmt = new Intl.NumberFormat("cs-CZ", {
   minimumFractionDigits: 0,
@@ -305,20 +305,9 @@ export default function LimitsSingleEditPrototype() {
     const minTotal = CONFIG[key].spent;
     const nextTotal = Math.max(nextTotalRaw, minTotal);
     const nextValues = { ...values, [key]: nextTotal };
-    let nextInfo: InfoState = null;
-
-    if (key === "internet" && nextTotal > nextValues.merchant) {
-      nextValues.merchant = nextTotal;
-      nextInfo = "internetRaisedMerchant";
-    }
-
-    if (key === "merchant" && nextValues.internet > nextTotal) {
-      nextValues.internet = nextTotal;
-      nextInfo = "merchantLoweredInternet";
-    }
 
     setValues(nextValues);
-    setInfo(nextInfo);
+    setInfo(null);
 
     return nextValues;
   };
@@ -377,6 +366,24 @@ export default function LimitsSingleEditPrototype() {
     setInfo(null);
     setScreen("overview");
   };
+
+  useEffect(() => {
+    if (screen !== "edit") return;
+
+    const timer = window.setTimeout(() => {
+      if (selectedLimit === "merchant" && values.internet > values.merchant) {
+        setValues((prev) => ({ ...prev, internet: prev.merchant }));
+        setInfo("merchantLoweredInternet");
+      }
+
+      if (selectedLimit === "internet" && values.internet > values.merchant) {
+        setValues((prev) => ({ ...prev, merchant: prev.internet }));
+        setInfo("internetRaisedMerchant");
+      }
+    }, 2000);
+
+    return () => window.clearTimeout(timer);
+  }, [screen, selectedLimit, values.merchant, values.internet]);
 
   const selectedConfig = CONFIG[selectedLimit];
   const selectedTotal = values[selectedLimit];
