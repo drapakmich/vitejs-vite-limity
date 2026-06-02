@@ -20,6 +20,7 @@ function parseNumber(value: string) {
     .replace(/\s/g, "")
     .replace(",", ".")
     .replace(/[^0-9.]/g, "");
+
   return normalized ? Number(normalized) : 0;
 }
 
@@ -41,7 +42,16 @@ type Sheet = "none" | "menu" | "edit";
 type ActiveInput = "available" | "total";
 type InfoState = null | "internetRaisedMerchant" | "merchantLoweredInternet";
 type BaseIcon = "bank" | "internet" | "atm";
-type UiIcon = BaseIcon | "pin" | "history" | "lock" | "more" | "settings" | "mobile" | "bell" | "branch";
+type UiIcon =
+  | BaseIcon
+  | "pin"
+  | "history"
+  | "lock"
+  | "more"
+  | "settings"
+  | "mobile"
+  | "bell"
+  | "branch";
 
 type LimitConfig = {
   title: string;
@@ -222,8 +232,19 @@ function QuickAction({
   onClick?: () => void;
 }) {
   const circleBg =
-    color === "red" ? "bg-[#FCE8E8]" : color === "light" ? "bg-[#EEF3FF]" : "bg-[#2F66F3]";
-  const circleText = color === "red" ? "text-[#E0483A]" : color === "light" ? "text-[#2F66F3]" : "text-white";
+    color === "red"
+      ? "bg-[#FCE8E8]"
+      : color === "light"
+        ? "bg-[#EEF3FF]"
+        : "bg-[#2F66F3]";
+
+  const circleText =
+    color === "red"
+      ? "text-[#E0483A]"
+      : color === "light"
+        ? "text-[#2F66F3]"
+        : "text-white";
+
   const labelColor = color === "red" ? "text-[#E0483A]" : "text-[#2F66F3]";
 
   return (
@@ -657,13 +678,27 @@ export default function LimitsSingleEditPrototype() {
                 <LimitProgress percent={availablePercent} />
 
                 <div className="space-y-3">
+                  <div className="text-[16px] leading-none font-semibold tracking-[-0.02em] text-neutral-900">
+                    Nastavte, kolik potřebujete zaplatit
+                  </div>
+
                   <EditInputRow
-                    label="K dispozici"
+                    label="Požadovaná částka"
                     value={drafts.available}
                     active={activeInput === "available"}
                     selected={activeInput === "available" && replaceOnNextDigit}
                     onClick={() => activateInput("available")}
                   />
+
+                  <div className="flex items-center gap-3 py-2">
+                    <div className="h-px flex-1 bg-neutral-200" />
+                    <div className="text-[13px] leading-none text-neutral-500">nebo</div>
+                    <div className="h-px flex-1 bg-neutral-200" />
+                  </div>
+
+                  <div className="text-[16px] leading-none font-semibold tracking-[-0.02em] text-neutral-900">
+                    Nastavte celkový denní limit
+                  </div>
 
                   <EditInputRow
                     label="Celkový limit"
